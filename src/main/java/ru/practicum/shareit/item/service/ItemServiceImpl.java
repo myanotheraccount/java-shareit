@@ -1,6 +1,6 @@
 package ru.practicum.shareit.item.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exceptions.NotFoundException;
 import ru.practicum.shareit.exceptions.ValidationException;
@@ -12,50 +12,65 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class ItemServiceImpl implements ItemService {
-    @Autowired
-    ItemMapper itemMapper;
-    @Autowired
-    ItemDao itemDao;
+    private final ItemDao itemDao;
+
+    public ItemServiceImpl(ItemDao itemDao) {
+        this.itemDao = itemDao;
+    }
 
     public ItemDto save(ItemDto itemDto, Long userId) {
         if (validate(itemDto)) {
-            Item item = itemMapper.dtoToItem(itemDto, userId);
+            Item item = ItemMapper.dtoToItem(itemDto, userId);
             item.setOwner(userId);
-            return itemMapper.itemToDto(itemDao.save(item));
+            log.info(String.format("добавлен новый предмет у пользователя id = %d", userId));
+            return ItemMapper.itemToDto(itemDao.save(item));
         }
         return null;
     }
 
     public ItemDto get(Long itemId) {
-        return itemMapper.itemToDto(itemDao.get(itemId));
+        log.info(String.format("найден предмет  id = %d", itemId));
+        return ItemMapper.itemToDto(itemDao.get(itemId));
     }
 
     public List<ItemDto> getAll(Long userId) {
+        log.info(String.format("найден список предметов у пользователя с id = %d", userId));
         return itemDao.getAll().stream()
                 .filter(item -> item.getOwner().equals(userId))
-                .map(itemMapper::itemToDto)
+                .map(ItemMapper::itemToDto)
                 .collect(Collectors.toList());
     }
 
     public List<ItemDto> find(String text) {
-        if (text.isBlank()) return List.of();
+        log.info(String.format("поиск предмета по тексту = $s", text));
+        if (text.isBlank()) {
+            return List.of();
+        }
         return itemDao.getAll().stream()
                 .filter(item ->
                         item.getAvailable()
                                 && (item.getName() + " " + item.getDescription()).toLowerCase().contains(text)
                 )
-                .map(itemMapper::itemToDto)
+                .map(ItemMapper::itemToDto)
                 .collect(Collectors.toList());
     }
 
     public ItemDto update(ItemDto itemDto, Long itemId, Long userId) {
         Item item = itemDao.get(itemId);
         if (item.getOwner().equals(userId)) {
-            if (itemDto.getName() != null) item.setName(itemDto.getName());
-            if (itemDto.getDescription() != null) item.setDescription(itemDto.getDescription());
-            if (itemDto.getAvailable() != null) item.setAvailable(itemDto.getAvailable());
-            return itemMapper.itemToDto(itemDao.update(item));
+            if (itemDto.getName() != null) {
+                item.setName(itemDto.getName());
+            }
+            if (itemDto.getDescription() != null) {
+                item.setDescription(itemDto.getDescription());
+            }
+            if (itemDto.getAvailable() != null) {
+                item.setAvailable(itemDto.getAvailable());
+            }
+            log.info(String.format("обновлен предмет %d у пользователя %d", itemId, userId));
+            return ItemMapper.itemToDto(itemDao.update(item));
         }
         throw new NotFoundException("предмет не принадлежить этому пользователю");
     }

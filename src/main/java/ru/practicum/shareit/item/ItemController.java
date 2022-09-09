@@ -46,7 +46,9 @@ public class ItemController {
             @RequestBody ItemDto item,
             @RequestHeader("X-Sharer-User-Id") Long userId
     ) {
-        if (userService.get(userId) == null) throw new NotFoundException("пользователь не найден");
+        if (userService.get(userId) == null) {
+            throw new NotFoundException("пользователь не найден");
+        }
         return itemService.save(item, userId);
     }
 
@@ -56,7 +58,9 @@ public class ItemController {
             @PathVariable("itemId") Long itemId,
             @RequestBody ItemDto item
     ) {
-        if (userService.get(userId) == null) throw new NotFoundException("пользователь не найден");
+        if (userService.get(userId) == null) {
+            throw new NotFoundException("пользователь не найден");
+        }
         return itemService.update(item, itemId, userId);
     }
 }

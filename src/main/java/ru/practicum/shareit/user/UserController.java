@@ -10,37 +10,33 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.service.UserService;
 
 import java.util.List;
 
-/**
- * TODO Sprint add-controllers.
- */
 @RestController
 @RequestMapping(path = "/users")
 public class UserController {
     @Autowired
-    UserService userService;
+    private UserService userService;
 
     @GetMapping("/{userId}")
-    public User get(@PathVariable("userId") Long userId) {
+    public UserDto get(@PathVariable("userId") Long userId) {
         return userService.get(userId);
     }
 
     @GetMapping
-    public List<User> getAll() {
+    public List<UserDto> getAll() {
         return userService.getAll();
     }
 
     @PostMapping
-    public User create(@RequestBody UserDto userDto) {
+    public UserDto create(@RequestBody UserDto userDto) {
         return userService.save(userDto);
     }
 
     @PatchMapping("/{userId}")
-    public User update(
+    public UserDto update(
             @PathVariable("userId") Long userId,
             @RequestBody UserDto userDto
     ) {
