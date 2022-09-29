@@ -11,24 +11,24 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "items", schema = "public")
+@Table(name = "comments", schema = "public")
 @Data
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
-public class Item {
+public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "name", nullable = false)
-    private String name;
-    @Column(name = "description")
-    private String description;
-    @Column(name = "available")
-    private Boolean available;
-    @Column(name = "owner")
-    private Long owner;
+    @Column(name = "text")
+    private String text;
+    @Column(name = "item_id", nullable = false)
+    private Long itemId;
+    @Column(name = "author_id", nullable = false)
+    private Long authorId;
+    @Column(name = "created", nullable = false)
+    private LocalDateTime created;
 }
-

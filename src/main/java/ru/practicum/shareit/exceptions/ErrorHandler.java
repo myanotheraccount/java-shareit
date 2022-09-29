@@ -6,6 +6,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @ControllerAdvice
 @Slf4j
 public class ErrorHandler {
@@ -18,6 +21,8 @@ public class ErrorHandler {
     @ExceptionHandler
     public ResponseEntity<?> catchValidationException(final ValidationException e) {
         log.error(e.getMessage());
-        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        Map<String, Object> map = new HashMap<>();
+        map.put("error", e.getMessage());
+        return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
     }
 }
