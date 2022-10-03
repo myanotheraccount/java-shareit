@@ -7,16 +7,20 @@ import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.user.dto.UserDto;
 
+import javax.validation.constraints.FutureOrPresent;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@DateRangeCorrect
 public class BookingDto {
     private Long id;
     private Long itemId;
+    @FutureOrPresent
     private LocalDateTime start;
+    @FutureOrPresent
     private LocalDateTime end;
     private BookingStatus status;
     private UserDto booker;
