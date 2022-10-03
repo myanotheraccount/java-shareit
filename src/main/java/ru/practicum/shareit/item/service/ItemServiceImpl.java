@@ -3,7 +3,9 @@ package ru.practicum.shareit.item.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.BookingStatus;
+import ru.practicum.shareit.booking.service.BookingMapper;
 import ru.practicum.shareit.exceptions.NotFoundException;
 import ru.practicum.shareit.exceptions.ValidationException;
 import ru.practicum.shareit.item.CommentRepository;
@@ -36,6 +38,9 @@ public class ItemServiceImpl implements ItemService {
     }
 
     public ItemDto save(ItemDto itemDto, Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new NotFoundException("пользователь не найден");
+        }
         if (validate(itemDto)) {
             Item item = ItemMapper.dtoToItem(itemDto, userId);
             item.setOwner(userId);
@@ -54,6 +59,7 @@ public class ItemServiceImpl implements ItemService {
                         User user = userRepository.getReferenceById(comment.getAuthorId());
                         return CommentMapper.commentToDto(comment, user.getName());
                     }).collect(Collectors.toList()));
+            addBookingInfo(itemDto, userId);
             return itemDto;
         } catch (Exception e) {
             throw new NotFoundException("предмет не найден");
@@ -64,8 +70,11 @@ public class ItemServiceImpl implements ItemService {
         log.info(String.format("найден список предметов у пользователя с id = %d", userId));
         return itemRepository.findAll().stream()
                 .filter(item -> item.getOwner().equals(userId))
-                .map(ItemMapper::itemToDto)
-                .collect(Collectors.toList());
+                .map(item -> {
+                    ItemDto itemDto = ItemMapper.itemToDto(item);
+                    addBookingInfo(itemDto, userId);
+                    return itemDto;
+                }).collect(Collectors.toList());
     }
 
     public List<ItemDto> find(String text) {
@@ -83,6 +92,10 @@ public class ItemServiceImpl implements ItemService {
     }
 
     public ItemDto update(ItemDto itemDto, Long itemId, Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new NotFoundException("пользователь не найден");
+        }
+
         Item item = itemRepository.getReferenceById(itemId);
         if (item.getOwner().equals(userId)) {
             if (itemDto.getName() != null) {
@@ -102,9 +115,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public CommentDto addComment(Long userId, Long itemId, CommentDto commentDto) {
-        if (!commentDto.getText().isBlank() &&
-                bookingRepository.existsBookingByBookerIdAndItemIdAndStatusAndStartBefore(
-                        userId, itemId, BookingStatus.APPROVED, LocalDateTime.now())) {
+        if (!commentDto.getText().isBlank() && bookingRepository.existsBooking(userId, itemId, BookingStatus.APPROVED)) {
             Comment comment = CommentMapper.dtoToComment(commentDto, itemId, userId, LocalDateTime.now());
             User user = userRepository.getReferenceById(userId);
             return CommentMapper.commentToDto(commentRepository.save(comment), user.getName());
@@ -124,5 +135,18 @@ public class ItemServiceImpl implements ItemService {
             throw new ValidationException("не указано описание предмета");
         }
         return true;
+    }
+
+    private void addBookingInfo(ItemDto itemDto, Long userId) {
+        if (itemDto.getOwner().equals(userId)) {
+            Booking lastBooking = bookingRepository.getLastBooking(itemDto.getId());
+            Booking nextBooking = bookingRepository.getNextBooking(itemDto.getId());
+            if (lastBooking != null) {
+                itemDto.setLastBooking(BookingMapper.bookingToShortDto(lastBooking));
+            }
+            if (nextBooking != null) {
+                itemDto.setNextBooking(BookingMapper.bookingToShortDto(nextBooking));
+            }
+        }
     }
 }
