@@ -2,30 +2,31 @@ package ru.practicum.shareit.user.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exceptions.NotFoundException;
 import ru.practicum.shareit.exceptions.ValidationException;
-import ru.practicum.shareit.user.dao.UserDao;
+import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
-    private final UserDao userDao;
+    private final UserRepository repository;
 
-    public UserServiceImpl(UserDao userDao) {
-        this.userDao = userDao;
+    public UserServiceImpl(UserRepository repository) {
+        this.repository = repository;
     }
 
     @Override
     public UserDto get(Long userId) {
         try {
             log.info(String.format("найден пользователь с id = %d", userId));
-            return UserMapper.userToDto(userDao.get(userId));
+            return UserMapper.userToDto(repository.getReferenceById(userId));
         } catch (Exception e) {
             throw new NotFoundException("пользователь не найден");
         }
@@ -34,20 +35,22 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserDto> getAll() {
         log.info("найдены все пользователи");
-        return userDao.getAll().stream().map(UserMapper::userToDto).collect(Collectors.toList());
+        return repository.findAll().stream().map(UserMapper::userToDto).collect(Collectors.toList());
     }
 
     @Override
+    @Transactional
     public UserDto save(UserDto userDto) {
         if (validate(userDto)) {
             User user = UserMapper.dtoToUser(userDto, null);
             log.info("добавлен новый пользователь");
-            return UserMapper.userToDto(userDao.save(user));
+            return UserMapper.userToDto(repository.save(user));
         }
         return null;
     }
 
     @Override
+    @Transactional
     public UserDto update(UserDto userDto, Long userId) {
         UserDto user = get(userId);
         if (user != null) {
@@ -57,7 +60,7 @@ public class UserServiceImpl implements UserService {
             if (userDto.getEmail() != null && validate(userDto)) {
                 user.setEmail(userDto.getEmail());
             }
-            userDao.update(UserMapper.dtoToUser(user, userId));
+            repository.save(UserMapper.dtoToUser(user, userId));
         }
         log.info(String.format("обновлены данные пользователя с id = %d", userId));
         return user;
@@ -65,7 +68,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void delete(Long userId) {
-        userDao.delete(userId);
+        repository.deleteByUserId(userId);
         log.info(String.format("удален пользователь с id = %d", userId));
     }
 
@@ -75,9 +78,6 @@ public class UserServiceImpl implements UserService {
         }
         if (!userDto.getEmail().contains("@")) {
             throw new ValidationException("невалидный email");
-        }
-        if (userDao.getAll().stream().anyMatch(item -> Objects.equals(item.getEmail(), userDto.getEmail()))) {
-            throw new RuntimeException("такой email уже существует");
         }
         return true;
     }

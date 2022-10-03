@@ -10,10 +10,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import ru.practicum.shareit.exceptions.NotFoundException;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemServiceImpl;
-import ru.practicum.shareit.user.service.UserService;
 
 import java.util.List;
 
@@ -23,12 +22,12 @@ public class ItemController {
     @Autowired
     private ItemServiceImpl itemService;
 
-    @Autowired
-    private UserService userService;
-
     @GetMapping("/{itemId}")
-    public ItemDto get(@PathVariable("itemId") Long itemId) {
-        return itemService.get(itemId);
+    public ItemDto get(
+            @RequestHeader("X-Sharer-User-Id") Long userId,
+            @PathVariable("itemId") Long itemId
+    ) {
+        return itemService.get(itemId, userId);
     }
 
     @GetMapping
@@ -46,9 +45,6 @@ public class ItemController {
             @RequestBody ItemDto item,
             @RequestHeader("X-Sharer-User-Id") Long userId
     ) {
-        if (userService.get(userId) == null) {
-            throw new NotFoundException("пользователь не найден");
-        }
         return itemService.save(item, userId);
     }
 
@@ -58,9 +54,15 @@ public class ItemController {
             @PathVariable("itemId") Long itemId,
             @RequestBody ItemDto item
     ) {
-        if (userService.get(userId) == null) {
-            throw new NotFoundException("пользователь не найден");
-        }
         return itemService.update(item, itemId, userId);
+    }
+
+    @PostMapping("/{itemId}/comment")
+    public CommentDto saveComment(
+            @RequestHeader("X-Sharer-User-Id") Long userId,
+            @PathVariable("itemId") Long itemId,
+            @RequestBody CommentDto commentDto
+    ) {
+        return itemService.addComment(userId, itemId, commentDto);
     }
 }
