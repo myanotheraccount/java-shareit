@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-@Transactional
+@Transactional(readOnly = true)
 public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final ItemRepository itemRepository;
@@ -35,6 +35,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public BookingDto save(BookingDto bookingDto, Long userId) {
         if (checkUserExist(userId) && vaildateBooking(bookingDto)) {
             Booking booking = BookingMapper.dtoToBooking(bookingDto);
@@ -52,6 +53,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public BookingDto approveBooking(Long userId, Long bookingId, Boolean isApproved) {
         Booking booking = bookingRepository.getReferenceById(bookingId);
         Item item = itemRepository.getReferenceById(booking.getItemId());
@@ -195,12 +197,6 @@ public class BookingServiceImpl implements BookingService {
         if (!itemRepository.getReferenceById(bookingDto.getItemId()).getAvailable()) {
             log.info("предмет нельзя забронировать");
             throw new ValidationException("предмет нельзя забронировать");
-        }
-        if (bookingDto.getEnd().isBefore(LocalDateTime.now()) ||
-                bookingDto.getStart().isBefore(LocalDateTime.now()) ||
-                bookingDto.getEnd().isBefore(bookingDto.getStart())) {
-            log.info("время окончания бронирования не может быть раньше времени начала");
-            throw new ValidationException("время окончания бронирования не может быть раньше времени начала");
         }
         return true;
     }
