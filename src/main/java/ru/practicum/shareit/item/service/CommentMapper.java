@@ -6,13 +6,13 @@ import ru.practicum.shareit.item.model.Comment;
 import java.time.LocalDateTime;
 
 public class CommentMapper {
-    public static Comment dtoToComment(CommentDto commentDto, Long itemId, Long userId, LocalDateTime dt) {
+    public static Comment dtoToComment(CommentDto commentDto, Long itemId, Long userId) {
         return new Comment(
                 commentDto.getId(),
                 commentDto.getText(),
                 itemId,
                 userId,
-                dt
+                LocalDateTime.now()
         );
     }
 

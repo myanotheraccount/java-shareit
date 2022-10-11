@@ -1,5 +1,7 @@
 package ru.practicum.shareit.booking;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long>, BookingRepositoryCustom {
-    List<Booking> findAllByBookerIdOrderByStartDesc(Long bookerId);
+    Page<Booking> findAllByBookerId(Long bookerId, Pageable pageable);
 
     @Modifying
     @Query("SELECT b FROM Booking b WHERE b.bookerId=?1 AND ?2 BETWEEN b.start AND b.end ORDER BY b.start DESC")
@@ -28,7 +30,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, Booking
     @Query("SELECT b FROM Booking b WHERE b.bookerId=?1 AND b.status = ?2 ORDER BY b.start DESC")
     List<Booking> findBookerAllByStatus(Long bookerId, BookingStatus status);
 
-    List<Booking> findAllByItemIdInOrderByStartDesc(List<Long> itemIds);
+    Page<Booking> findAllByItemIdInOrderByStartDesc(List<Long> itemIds, Pageable pageable);
 
     @Modifying
     @Query("SELECT b FROM Booking b WHERE b.itemId IN ?1 AND b.end < ?2 ORDER BY b.start DESC")
