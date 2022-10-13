@@ -48,7 +48,11 @@ public class BookingServiceImpl implements BookingService {
         }
         booking.setBookerId(userId);
         booking.setStatus(BookingStatus.WAITING);
-        return BookingMapper.bookingToDto(bookingRepository.save(booking));
+
+        BookingDto result = BookingMapper.bookingToDto(bookingRepository.save(booking));
+        result.setItem(BookingMapper.itemToBookingItemDto(itemRepository.getReferenceById(booking.getItemId())));
+        result.setBooker(UserMapper.userToDto(userRepository.getReferenceById(booking.getBookerId())));
+        return result;
     }
 
     @Override
