@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,15 +13,20 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.service.ItemServiceImpl;
+import ru.practicum.shareit.item.service.ItemService;
 
+import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 
 @RestController
 @RequestMapping("/items")
+@Validated
 public class ItemController {
-    @Autowired
-    private ItemServiceImpl itemService;
+    private ItemService itemService;
+
+    public ItemController(ItemService itemService) {
+        this.itemService = itemService;
+    }
 
     @GetMapping("/{itemId}")
     public ItemDto get(
@@ -31,13 +37,21 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemDto> getAll(@RequestHeader("X-Sharer-User-Id") Long userId) {
-        return itemService.getAll(userId);
+    public List<ItemDto> getAll(
+            @RequestHeader("X-Sharer-User-Id") Long userId,
+            @RequestParam(value = "from", required = false, defaultValue = "0") @PositiveOrZero Integer from,
+            @RequestParam(value = "size", required = false, defaultValue = "50") Integer size
+    ) {
+        return itemService.getAll(userId, PageRequest.of(from / size, size));
     }
 
     @GetMapping("/search")
-    public List<ItemDto> search(@RequestParam("text") String text) {
-        return itemService.find(text.toLowerCase());
+    public List<ItemDto> search(
+            @RequestParam("text") String text,
+            @RequestParam(value = "from", required = false, defaultValue = "0") @PositiveOrZero Integer from,
+            @RequestParam(value = "size", required = false, defaultValue = "50") Integer size
+    ) {
+        return itemService.find(text.toLowerCase(), PageRequest.of(from / size, size));
     }
 
     @PostMapping

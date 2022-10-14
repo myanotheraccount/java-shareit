@@ -1,6 +1,7 @@
 package ru.practicum.shareit.booking.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.BookingRepository;
@@ -37,19 +38,21 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingDto save(BookingDto bookingDto, Long userId) {
-        if (checkUserExist(userId) && vaildateBooking(bookingDto)) {
-            Booking booking = BookingMapper.dtoToBooking(bookingDto);
-            Item item = itemRepository.getReferenceById(booking.getItemId());
-            if (item.getOwner().equals(userId)) {
-                log.info("владелец предмета не может его бронировать");
-                throw new NotFoundException("владелец предмета не может его бронировать");
-            }
-            booking.setBookerId(userId);
-            booking.setStatus(BookingStatus.WAITING);
-            return BookingMapper.bookingToDto(bookingRepository.save(booking));
+        checkUserExist(userId);
+        vaildateBooking(bookingDto);
+        Booking booking = BookingMapper.dtoToBooking(bookingDto);
+        Item item = itemRepository.getReferenceById(booking.getItemId());
+        if (item.getOwner().equals(userId)) {
+            log.info("владелец предмета не может его бронировать");
+            throw new NotFoundException("владелец предмета не может его бронировать");
         }
-        log.info("не удалось сохранить бронирование");
-        throw new ValidationException("не удалось сохранить бронирование");
+        booking.setBookerId(userId);
+        booking.setStatus(BookingStatus.WAITING);
+
+        BookingDto result = BookingMapper.bookingToDto(bookingRepository.save(booking));
+        result.setItem(BookingMapper.itemToBookingItemDto(itemRepository.getReferenceById(booking.getItemId())));
+        result.setBooker(UserMapper.userToDto(userRepository.getReferenceById(booking.getBookerId())));
+        return result;
     }
 
     @Override
@@ -90,13 +93,13 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingDto> getAllBookings(Long userId, String status) {
+    public List<BookingDto> getAllBookings(Long userId, BookingStatus bookingStatus, Pageable pageable) {
         List<Booking> bookings;
-        BookingStatus bookingStatus = parseStatus(status);
         LocalDateTime dt = LocalDateTime.now();
         switch (bookingStatus) {
             case ALL:
-                bookings = bookingRepository.findAllByBookerIdOrderByStartDesc(userId);
+                bookings = bookingRepository.findAllByBookerId(userId, pageable)
+                        .stream().collect(Collectors.toList());
                 break;
             case PAST:
                 bookings = bookingRepository.findBookerAllPast(userId, dt);
@@ -126,15 +129,15 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingDto> getOwnerAllBookings(Long userId, String status) {
+    public List<BookingDto> getOwnerAllBookings(Long userId, BookingStatus bookingStatus, Pageable pageable) {
         List<Long> idsList = itemRepository.findAllByOwner(userId).stream().map(Item::getId).collect(Collectors.toList());
         List<Booking> bookings;
 
         LocalDateTime dt = LocalDateTime.now();
-        BookingStatus bookingStatus = parseStatus(status);
         switch (bookingStatus) {
             case ALL:
-                bookings = bookingRepository.findAllByItemIdInOrderByStartDesc(idsList);
+                bookings = bookingRepository.findAllByItemIdInOrderByStartDesc(idsList, pageable)
+                        .stream().collect(Collectors.toList());
                 break;
             case PAST:
                 bookings = bookingRepository.findItemsInPast(idsList, dt);
@@ -172,14 +175,6 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingShortDto getNextBooking(Long itemId) {
         return BookingMapper.bookingToShortDto(bookingRepository.getNextBooking(itemId));
-    }
-
-    private BookingStatus parseStatus(String status) {
-        try {
-            return BookingStatus.valueOf(status);
-        } catch (Exception e) {
-            throw new ValidationException("Unknown state: " + status);
-        }
     }
 
     private Boolean checkUserExist(long userId) {

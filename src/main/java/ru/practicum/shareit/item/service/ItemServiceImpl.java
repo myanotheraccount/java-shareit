@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.model.Booking;
@@ -17,7 +18,6 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,16 +38,12 @@ public class ItemServiceImpl implements ItemService {
     }
 
     public ItemDto save(ItemDto itemDto, Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new NotFoundException("пользователь не найден");
-        }
-        if (validate(itemDto)) {
-            Item item = ItemMapper.dtoToItem(itemDto, userId);
-            item.setOwner(userId);
-            log.info(String.format("добавлен новый предмет у пользователя id = %d", userId));
-            return ItemMapper.itemToDto(itemRepository.save(item));
-        }
-        return null;
+        checkUserExist(userId);
+        validate(itemDto);
+        Item item = ItemMapper.dtoToItem(itemDto, userId);
+        item.setOwner(userId);
+        log.info(String.format("добавлен новый предмет у пользователя id = %d", userId));
+        return ItemMapper.itemToDto(itemRepository.save(item));
     }
 
     public ItemDto get(Long itemId, Long userId) {
@@ -66,9 +62,9 @@ public class ItemServiceImpl implements ItemService {
         }
     }
 
-    public List<ItemDto> getAll(Long userId) {
+    public List<ItemDto> getAll(Long userId, Pageable pageable) {
         log.info(String.format("найден список предметов у пользователя с id = %d", userId));
-        return itemRepository.findAll().stream()
+        return itemRepository.findAll(pageable).stream()
                 .filter(item -> item.getOwner().equals(userId))
                 .map(item -> {
                     ItemDto itemDto = ItemMapper.itemToDto(item);
@@ -77,12 +73,12 @@ public class ItemServiceImpl implements ItemService {
                 }).collect(Collectors.toList());
     }
 
-    public List<ItemDto> find(String text) {
+    public List<ItemDto> find(String text, Pageable pageable) {
         log.info(String.format("поиск предмета по тексту = $s", text));
         if (text.isBlank()) {
             return List.of();
         }
-        return itemRepository.findAll().stream()
+        return itemRepository.findAll(pageable).stream()
                 .filter(item ->
                         item.getAvailable()
                                 && (item.getName() + " " + item.getDescription()).toLowerCase().contains(text)
@@ -92,12 +88,8 @@ public class ItemServiceImpl implements ItemService {
     }
 
     public ItemDto update(ItemDto itemDto, Long itemId, Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new NotFoundException("пользователь не найден");
-        }
-
         Item item = itemRepository.getReferenceById(itemId);
-        if (item.getOwner().equals(userId)) {
+        if (checkUserExist(userId) && item.getOwner().equals(userId)) {
             if (itemDto.getName() != null) {
                 item.setName(itemDto.getName());
             }
@@ -110,18 +102,25 @@ public class ItemServiceImpl implements ItemService {
             log.info(String.format("обновлен предмет %d у пользователя %d", itemId, userId));
             return ItemMapper.itemToDto(itemRepository.save(item));
         }
-        throw new NotFoundException("предмет не принадлежить этому пользователю");
+        throw new NotFoundException("предмет не принадлежит этому пользователю");
+    }
+
+    private Boolean checkUserExist(long userId) {
+        if (userRepository.existsById(userId)) {
+            return true;
+        }
+        throw new NotFoundException("такого пользователя не существует");
     }
 
     @Override
     public CommentDto addComment(Long userId, Long itemId, CommentDto commentDto) {
         if (!commentDto.getText().isBlank() && bookingRepository.existsBooking(userId, itemId, BookingStatus.APPROVED)) {
-            Comment comment = CommentMapper.dtoToComment(commentDto, itemId, userId, LocalDateTime.now());
+            Comment comment = CommentMapper.dtoToComment(commentDto, itemId, userId);
             User user = userRepository.getReferenceById(userId);
             return CommentMapper.commentToDto(commentRepository.save(comment), user.getName());
         }
-        log.info("ну удалось добавить комментарий");
-        throw new ValidationException("ну удалось добавить комментарий");
+        log.info("нe удалось добавить комментарий");
+        throw new ValidationException("нe удалось добавить комментарий");
     }
 
     private boolean validate(ItemDto itemDto) {

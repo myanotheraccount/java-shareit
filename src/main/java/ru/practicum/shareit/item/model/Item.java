@@ -22,6 +22,8 @@ public class Item {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(name = "request_id")
+    private Long requestId;
     @Column(name = "name", nullable = false)
     private String name;
     @Column(name = "description")

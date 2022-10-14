@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface ItemRepository extends JpaRepository<Item, Long> {
     List<Item> findAllByOwner(Long id);
+
+    List<Item> findAllByRequestId(Long id);
 }

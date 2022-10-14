@@ -41,12 +41,10 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserDto save(UserDto userDto) {
-        if (validate(userDto)) {
-            User user = UserMapper.dtoToUser(userDto, null);
-            log.info("добавлен новый пользователь");
-            return UserMapper.userToDto(repository.save(user));
-        }
-        return null;
+        validate(userDto);
+        User user = UserMapper.dtoToUser(userDto, null);
+        log.info("добавлен новый пользователь");
+        return UserMapper.userToDto(repository.save(user));
     }
 
     @Override

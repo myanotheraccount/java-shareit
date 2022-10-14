@@ -12,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 public class ItemDto {
     private Long id;
+    private Long requestId;
     private String name;
     private String description;
     private Boolean available;

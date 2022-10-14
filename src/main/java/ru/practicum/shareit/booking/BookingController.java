@@ -1,6 +1,8 @@
 package ru.practicum.shareit.booking;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,16 +13,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.exceptions.ValidationException;
 
 import javax.validation.Valid;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 
 @RestController
 @RequestMapping(path = "/bookings")
+@Validated
 public class BookingController {
-    @Autowired
     BookingService bookingService;
+
+    public BookingController(BookingService bookingService) {
+        this.bookingService = bookingService;
+    }
 
     @PostMapping
     public BookingDto postBooking(
@@ -50,16 +59,28 @@ public class BookingController {
     @GetMapping
     public List<BookingDto> getAllBookings(
             @RequestHeader("X-Sharer-User-Id") Long userId,
-            @RequestParam(value = "state", required = false, defaultValue = "ALL") String state
+            @RequestParam(value = "state", required = false, defaultValue = "ALL") String state,
+            @RequestParam(value = "from", required = false, defaultValue = "0") @PositiveOrZero Integer from,
+            @RequestParam(value = "size", required = false, defaultValue = "50") Integer size
     ) {
-        return bookingService.getAllBookings(userId, state);
+        return bookingService.getAllBookings(userId, parseStatus(state), PageRequest.of(from / size, size, Sort.Direction.DESC, "start"));
     }
 
     @GetMapping("/owner")
     public List<BookingDto> getOwnerAllBookings(
             @RequestHeader("X-Sharer-User-Id") Long userId,
-            @RequestParam(value = "state", required = false, defaultValue = "ALL") String state
+            @RequestParam(value = "state", required = false, defaultValue = "ALL") String state,
+            @RequestParam(value = "from", required = false, defaultValue = "0") @PositiveOrZero Integer from,
+            @RequestParam(value = "size", required = false, defaultValue = "50") Integer size
     ) {
-        return bookingService.getOwnerAllBookings(userId, state);
+        return bookingService.getOwnerAllBookings(userId, parseStatus(state), PageRequest.of(from / size, size));
+    }
+
+    private BookingStatus parseStatus(String status) {
+        try {
+            return BookingStatus.valueOf(status);
+        } catch (Exception e) {
+            throw new ValidationException("Unknown state: " + status);
+        }
     }
 }

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users
 CREATE TABLE IF NOT EXISTS items
 (
     id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    request_id  BIGINT,
     name        VARCHAR(255),
     description VARCHAR(500),
     available   BOOLEAN,
@@ -39,3 +40,11 @@ CREATE TABLE IF NOT EXISTS comments
     FOREIGN KEY (item_id) REFERENCES items (id) ON DELETE CASCADE,
     FOREIGN KEY (author_id) REFERENCES users (id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS requests
+(
+    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    author_id   BIGINT,
+    description VARCHAR(500),
+    created     TIMESTAMP WITHOUT TIME ZONE
+)
