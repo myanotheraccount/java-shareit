@@ -19,7 +19,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/shareit
 
   db:
-    image: postgres:13.7-alpine
+    image: postgres:latest
     volumes:
       - /var/lib/postgresql/data/
     ports:

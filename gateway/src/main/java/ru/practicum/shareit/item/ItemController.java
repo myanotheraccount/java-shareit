@@ -18,6 +18,7 @@ import ru.practicum.shareit.exceptions.ValidationException;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @Controller
@@ -60,10 +61,9 @@ public class ItemController {
 
     @PostMapping
     public ResponseEntity<Object> postItem(
-            @RequestBody ItemDto item,
+            @RequestBody @Valid ItemDto item,
             @RequestHeader("X-Sharer-User-Id") Long userId
     ) {
-        validate(item);
         return itemClient.saveItem(userId, item);
     }
 
@@ -88,15 +88,4 @@ public class ItemController {
         return itemClient.addComment(userId, itemId, commentDto);
     }
 
-    private void validate(ItemDto itemDto) {
-        if (itemDto.getAvailable() == null) {
-            throw new ValidationException("не указана доступность предмета");
-        }
-        if (itemDto.getName() == null || itemDto.getName().isBlank()) {
-            throw new ValidationException("не указано название предмета");
-        }
-        if (itemDto.getDescription() == null || itemDto.getDescription().isBlank()) {
-            throw new ValidationException("не указано описание предмета");
-        }
-    }
 }

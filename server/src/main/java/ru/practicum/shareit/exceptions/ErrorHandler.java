@@ -11,7 +11,7 @@ import java.util.Map;
 
 @ControllerAdvice
 @Slf4j
-public class ErrorHandler {
+public class ErrorHandler extends Throwable {
     @ExceptionHandler
     public ResponseEntity<?> catchNotFoundException(NotFoundException e) {
         log.error(e.getMessage(), e);
